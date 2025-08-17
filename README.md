@@ -4,7 +4,7 @@ To deploy this:
 
 1. **Create a terraform.tfvars file:**
 ````terraform
-project_id         = "your-gcp-project-id"
+project_id        = "your-gcp-project-id"
 region            = "us-central1"
 github_repo_owner = "your-github-username"
 github_repo_name  = "your-repo-name"
