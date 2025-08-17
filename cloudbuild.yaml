@@ -1,0 +1,57 @@
+steps:
+  # Create archive of the source code
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Create timestamp
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        COMMIT_SHA=$SHORT_SHA
+        BRANCH_NAME=$BRANCH_NAME
+        
+        # Create archive filename
+        ARCHIVE_NAME="main-branch-${TIMESTAMP}-${COMMIT_SHA}.tar.gz"
+        
+        # Create tar.gz archive
+        tar -czf $ARCHIVE_NAME \
+          --exclude='.git' \
+          --exclude='node_modules' \
+          --exclude='.DS_Store' \
+          --exclude='*.log' \
+          .
+        
+        # Upload to GCS
+        gsutil cp $ARCHIVE_NAME gs://${_BUCKET_NAME}/archives/
+        
+        # Create metadata file
+        cat > metadata.json << EOF
+        {
+          "timestamp": "$TIMESTAMP",
+          "commit_sha": "$COMMIT_SHA",
+          "branch": "$BRANCH_NAME",
+          "archive_name": "$ARCHIVE_NAME",
+          "trigger_id": "$BUILD_ID"
+        }
+        EOF
+        
+        # Upload metadata
+        gsutil cp metadata.json gs://${_BUCKET_NAME}/metadata/metadata-${TIMESTAMP}-${COMMIT_SHA}.json
+        
+        echo "Archive uploaded: gs://${_BUCKET_NAME}/archives/$ARCHIVE_NAME"
+
+  # Optional: Send notification or update status
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "✅ Main branch archived successfully!"
+        echo "📦 GCS: gs://${_BUCKET_NAME}/archives/"
+
+substitutions:
+  _BUCKET_NAME: '${BUCKET_NAME}'
+  _REGION: '${REGION}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
